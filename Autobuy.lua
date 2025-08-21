@@ -1,94 +1,102 @@
--- Auto-Buy GUI with Animations
+-- 🌱 Vathana Auto-Buy Hub with ThunderZ-style Animations ⚡
+local plr = game.Players.LocalPlayer
+local rs  = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+-- item list
+local items = {
+    "Grandmaster","Master","LevelUp","Lollipop",
+    "Godly","Elder","Strawberry","Giant",
+    "Pincoin","BurningBud","Watering Can"
+}
 
--- Items to buy (update exactly as in-game)
-local items = {"Grandmaster","Master","LevelUp","Lollipop","Godly","Elder","Strawberry","Giant","Pincoin","BurningBud","WateringCan"}
+-- gui base
+local gui = Instance.new("ScreenGui",plr.PlayerGui)
+local frame = Instance.new("Frame",gui)
+frame.Size = UDim2.new(0,0,0,0) -- start small for animation
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.2
+frame.Active = true
+frame.Draggable = true
+frame.ClipsDescendants = true
+frame.Visible = true
 
--- Function to find a working RemoteEvent
-local function findBuyEvent()
-    for _, obj in pairs(ReplicatedStorage:GetChildren()) do
-        if obj:IsA("RemoteEvent") then
-            local success = pcall(function() obj:FireServer(items[1]) end)
-            if success then return obj end
-        end
-    end
-    return nil
-end
+-- rounded corners + glow
+local corner = Instance.new("UICorner",frame)
+corner.CornerRadius = UDim.new(0,12)
 
-local buyEvent = findBuyEvent()
-if not buyEvent then
-    warn("No working RemoteEvent found!")
-    return
-end
+local uiStroke = Instance.new("UIStroke",frame)
+uiStroke.Thickness = 2
+uiStroke.Color = Color3.fromRGB(0,200,255)
 
--- GUI Creation
-local screenGui = Instance.new("ScreenGui", playerGui)
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 250, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -125, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-
--- Rounded corners
-local corner = Instance.new("UICorner", mainFrame)
-corner.CornerRadius = UDim.new(0, 10)
-
--- Title
-local title = Instance.new("TextLabel", mainFrame)
-title.Text = "Auto-Buy Menu"
-title.Size = UDim2.new(1, 0, 0, 30)
+-- title
+local title = Instance.new("TextLabel",frame)
+title.Size = UDim2.new(1,0,0,40)
 title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.Font = Enum.Font.Montserrat
+title.Text = "⚡ Vathana Hub ⚡"
+title.TextScaled = true
+title.TextColor3 = Color3.new(1,1,1)
 
--- Scrolling frame for buttons
-local scroll = Instance.new("ScrollingFrame", mainFrame)
-scroll.Size = UDim2.new(1, -10, 1, -40)
-scroll.Position = UDim2.new(0, 5, 0, 35)
-scroll.BackgroundTransparency = 1
-scroll.CanvasSize = UDim2.new(0,0,0,#items*40)
+-- scrolling area
+local scroll = Instance.new("ScrollingFrame",frame)
+scroll.Size = UDim2.new(1,0,1,-40)
+scroll.Position = UDim2.new(0,0,0,40)
+scroll.CanvasSize = UDim2.new(0,0,#items*35,0)
 scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
 
--- Create buttons with hover animation
-for i, itemName in ipairs(items) do
-    local btn = Instance.new("TextButton", scroll)
-    btn.Size = UDim2.new(1, -10, 0, 35)
-    btn.Position = UDim2.new(0, 5, 0, (i-1)*40)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.Text = itemName
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 16
-    btn.AutoButtonColor = false
+-- animate frame in (slide + grow)
+TweenService:Create(frame,TweenInfo.new(0.7,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{
+    Size = UDim2.new(0,220,0,350)
+}):Play()
 
-    local cornerBtn = Instance.new("UICorner", btn)
-    cornerBtn.CornerRadius = UDim.new(0,5)
+-- glowing stroke effect
+task.spawn(function()
+    while frame.Parent do
+        TweenService:Create(uiStroke,TweenInfo.new(0.6),{Thickness=4,Color=Color3.fromRGB(0,255,180)}):Play()
+        task.wait(0.6)
+        TweenService:Create(uiStroke,TweenInfo.new(0.6),{Thickness=2,Color=Color3.fromRGB(0,150,255)}):Play()
+        task.wait(0.6)
+    end
+end)
 
-    -- Hover animation
-    btn.MouseEnter:Connect(function()
-        btn:TweenSizeAndPosition(UDim2.new(1, -8, 0, 37), btn.Position - UDim2.new(0,0,0,1), "Out", "Quad", 0.2, true)
-        btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+-- find remote
+local remote
+for _,v in ipairs(rs:GetDescendants()) do
+    if v:IsA("RemoteEvent") and v.Name:lower():find("buy") then
+        remote=v break
+    end
+end
+
+-- make buttons w/ hover effect
+for i,name in ipairs(items) do
+    local b = Instance.new("TextButton",scroll)
+    b.Size = UDim2.new(1,-10,0,30)
+    b.Position = UDim2.new(0,5,0,(i-1)*35)
+    b.Text = "Buy "..name
+    b.Font = Enum.Font.Montserrat
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+    local bc = Instance.new("UICorner",b)
+    bc.CornerRadius = UDim.new(0,8)
+
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b,TweenInfo.new(0.2),{BackgroundColor3=Color3.fromRGB(0,180,255)}):Play()
     end)
-    btn.MouseLeave:Connect(function()
-        btn:TweenSizeAndPosition(UDim2.new(1, -10, 0, 35), btn.Position + UDim2.new(0,0,0,1), "Out", "Quad", 0.2, true)
-        btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b,TweenInfo.new(0.2),{BackgroundColor3=Color3.fromRGB(40,40,40)}):Play()
     end)
 
-    -- Click: auto-buy
-    btn.MouseButton1Click:Connect(function()
-        local success, err = pcall(function()
-            buyEvent:FireServer(itemName)
-        end)
-        if success then
-            print("Bought:", itemName)
+    b.MouseButton1Click:Connect(function()
+        if remote then
+            remote:FireServer(name,1)
+            print("[AutoBuy] Bought "..name)
         else
-            warn("Failed:", itemName, err)
+            warn("No remote found!")
         end
     end)
 end
